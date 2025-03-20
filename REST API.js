@@ -1,92 +1,62 @@
-// Import the Express framework
+// Importing required modules
 const express = require('express');
-
-// Initialize an Express application
+const fs = require('fs'); // File system module for reading/writing files
 const app = express();
+const users = require('./MOCK_DATA.json'); // Loading mock user data from a JSON file
+const PORT = 8111;
 
-// Define the port number on which the server will run
-const PORT = 8300;
-
-// Import the built-in File System (fs) module for file operations
-const fs = require('fs');
-
-// Load user data from a JSON file
-const users = require("./MOCK_DATA.json");
-
-// Middleware to parse URL-encoded form data
+// Middleware to parse URL-encoded data (from form submissions)
 app.use(express.urlencoded({ extended: false }));
 
-// ============================================
-// Route 1: Serve an HTML list of user names
-// ============================================
-app.get("/users", (req, res) => {
-    // Generate an unordered list of user names dynamically
-    const html = `
-        <ul>
-        ${users.map((user) => {
-            return `<li>${user.name}</li>`;
-        }).join('')}
-        </ul>
-    `;
-
-    // Send the generated HTML response
-    res.send(html);
+// Route to display users as an unordered list in HTML
+app.get('/users', (req, res) => {
+    const a = `<ul>
+        ${users.map(user => `<li>${user.first_name}</li>`).join('')}
+    </ul>`;
+    
+    res.send(a);
 });
 
-// ============================================
-// Route 2: Return the full users' data as JSON
-// ============================================
-app.get("/api/users", (req, res) => {
-    return res.json(users); // Sends the full users' JSON data
-});
-
-// ============================================
-// Route 3: Handle operations on a specific user by ID
-// ============================================
+// API route to get, update, create, or delete a specific user by ID
 app.route("/api/users/:id")
-    // GET: Retrieve a user by ID
+    // GET request: Fetch a user by ID
     .get((req, res) => {
-        const id = Number(req.params.id); // Convert the ID from string to number
-        const user = users.find((user) => user.id === id);
-
-        // If user not found, return a 404 error
-        if (!user) {
-            return res.status(404).json({ error: "User not found" });
-        }
-
-        return res.json(user); // Send the matched user as JSON
+        const id = Number(req.params.id); // Extracting ID from the request parameters
+        const user = users.find(user => user.id === id); // Finding the user
+        return res.json(user); // Sending the user data as a JSON response
     })
+    
+    // PUT request: Update a user's data (Not implemented yet)
+    .put((req, res) => {
 
-    // POST: Add a new user to the list
+    })
+    
+    // POST request: Add a new user
     .post((req, res) => {
-        const body = req.body; // Get request body
-        console.log(body); // Log the request body
+        const body = req.body;
+        console.log(body);
 
-        users.push(body); // Add new user to the users array
+        // Adding a new user with an incremented ID
+        users.push({ ...body, id: users.length + 1 });
 
-        // Write the updated data back to MOCK_DATA.json
-        fs.writeFileSync('MOCK_DATA.json', JSON.stringify(users), (err) => {
-            if (err) {
-                return res.status(500).json({ status: "error", message: "Failed to write data" });
-            }
+        // Writing updated user data back to the file
+        fs.writeFile("./MOCK_DATA.json", JSON.stringify(users), (err, data) => {
+            if (err) throw err;
+            console.log("Data has been saved!");
         });
-
-        return res.json({ status: "success", message: "User added successfully" });
     })
-
-    // PATCH: Update user details (Not implemented yet)
-    .patch((req, res) => {
-        res.json({ message: "Update user endpoint (PATCH) not implemented yet" });
-    })
-
-    // DELETE: Remove a user (Not implemented yet)
+    
+    // DELETE request: Remove a user (Not implemented yet)
     .delete((req, res) => {
-        res.json({ message: "Delete user endpoint (DELETE) not implemented yet" });
+
     });
 
-// ============================================
-// Start the server and listen on the specified port
-// ============================================
-app.listen(PORT, () => {
-    console.log(`Server is listening on port ${PORT}`);
+// API route to get all users as JSON
+app.get('/api/users', (req, res) => {
+    return res.json(users);
 });
+
+// Start the server
+app.listen(PORT, () => 
+    console.log(`Listening on PORT ${PORT}`)
+);
